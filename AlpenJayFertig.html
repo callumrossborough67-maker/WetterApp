@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlpenJay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:'Inter',sans-serif;background:linear-gradient(165deg,#0c2a4d 0%,#155d8b 45%,#1f9b9b 100%);background-attachment:fixed;min-height:100vh;padding:28px 16px 50px;color:#fff;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto}
+h1{text-align:center;font-size:1.7rem;font-weight:800;margin:0 0 4px;display:flex;align-items:center;justify-content:center;gap:10px}
+.subtitle{text-align:center;opacity:.75;margin-bottom:24px;font-size:.85rem;font-weight:500}
+.tabs{display:flex;gap:8px;margin-bottom:20px;background:rgba(255,255,255,.08);border-radius:16px;padding:5px;overflow-x:auto}
+.tab-btn{padding:10px 12px;border:none;background:transparent;color:rgba(255,255,255,.65);font-family:inherit;font-size:.85rem;font-weight:600;border-radius:12px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.tab-btn.active{background:rgba(255,255,255,.95);color:#0c4d75}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.search-box{position:relative;margin-bottom:14px;display:flex;gap:8px}
+.search-input{flex:1;padding:14px 18px;border-radius:16px;border:none;font-size:1rem;background:rgba(255,255,255,.97);color:#142535;outline:none;font-family:inherit;font-weight:500}
+.favorites-btn{padding:10px 14px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:16px;color:#fff;font-size:1.3rem;cursor:pointer;transition:all .2s}
+.favorites-btn:hover{background:rgba(255,255,255,.25)}
+.suggestions{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:100;overflow:hidden;max-height:300px;overflow-y:auto;display:none}
+.suggestions.active{display:block}
+.suggestion-item{padding:12px 16px;color:#142535;cursor:pointer;border-bottom:1px solid #f0f0f0;transition:background .15s;display:flex;align-items:center;justify-content:space-between}
+.suggestion-item:hover{background:#f5f5f5}
+.suggestion-item:last-child{border-bottom:none}
+.star-btn{background:none;border:none;font-size:1.1rem;cursor:pointer;transition:all .2s;padding:4px}
+.star-btn:hover{transform:scale(1.2)}
+.card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:18px;margin-bottom:14px;backdrop-filter:blur(10px)}
+.loading{text-align:center;padding:40px 20px;opacity:.6;font-size:.95rem}
+.current-main{display:flex;flex-direction:column;gap:16px}
+.current-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.current-loc{font-size:1.3rem;font-weight:700}
+.current-region{font-size:.8rem;opacity:.7}
+.current-temp-wrap{text-align:center;cursor:pointer;transition:transform .2s}
+.current-temp-wrap:hover{transform:scale(1.02)}
+.current-icon{font-size:4.5rem;line-height:1}
+.current-temp{font-size:4.2rem;font-weight:800;line-height:1}
+.current-desc{font-size:1rem;opacity:.85;text-align:center}
+.current-hilo{font-size:.9rem;opacity:.7;text-align:center}
+.section-title{font-size:.75rem;font-weight:800;opacity:.65;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.hourly-scroll{display:flex;gap:8px;overflow-x:auto;padding:8px 0}
+.hour-card{flex:0 0 60px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px;text-align:center;font-size:.75rem;cursor:pointer;transition:all .2s}
+.hour-card:hover{background:rgba(255,255,255,.15);transform:translateY(-4px)}
+.hour-card.now{background:rgba(100,200,255,.3);border-color:rgba(100,200,255,.6);font-weight:600}
+.hour-time{opacity:.7;margin-bottom:4px}
+.hour-icon{font-size:1.8rem;margin:6px 0}
+.hour-temp{font-weight:600}
+.day-card{display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.day-card:hover{background:rgba(255,255,255,.12);transform:translateX(4px)}
+.day-info{flex:1}
+.day-name{font-weight:600}
+.day-desc{font-size:.8rem;opacity:.65}
+.day-temps{display:flex;gap:8px;align-items:center}
+.day-lo{color:#b0e0e6}
+.day-hi{width:32px;text-align:right;font-size:.9rem}
+.widgets-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.widget{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.widget-label{font-size:.7rem;font-weight:700;opacity:.65;text-transform:uppercase;letter-spacing:.05em}
+.widget-value{font-size:1.6rem;font-weight:800}
+.widget-sub{font-size:.75rem;opacity:.65}
+.uv-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.1);position:relative;overflow:hidden;margin-top:4px}
+.uv-marker{position:absolute;top:0;width:3px;height:100%;background:#ffeb3b;border-radius:2px;transform:translateX(-50%)}
+.compass-widget{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.compass-rose{width:100px;height:100px;border-radius:50%;background:rgba(0,0,0,.2);border:2px solid rgba(255,255,255,.3);position:relative;display:flex;align-items:center;justify-content:center}
+.compass-arrow{width:4px;height:40px;background:linear-gradient(to top,#ff6b6b,#ffd93d);border-radius:2px;position:absolute;transform-origin:center 40px;transition:transform .1s ease-out}
+.compass-n{position:absolute;top:8px;font-weight:700;font-size:.75rem;opacity:.9}
+.compass-degrees{font-size:1.3rem;font-weight:700;margin-top:8px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);z-index:500;display:none;align-items:flex-end;opacity:0;transition:opacity .3s}
+.modal-overlay.active{display:flex;opacity:1}
+.modal-sheet{background:linear-gradient(180deg,#0f3a57 0%,#0c2a4d 100%);border-radius:24px 24px 0 0;padding:32px 20px 20px;max-height:85vh;overflow-y:auto;width:100%;box-shadow:0 -8px 32px rgba(0,0,0,.3)}
+.modal-handle{width:40px;height:4px;background:rgba(255,255,255,.3);border-radius:2px;margin:0 auto 16px}
+.close-btn{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:1.5rem;cursor:pointer;transition:all .2s;z-index:10}
+.close-btn:hover{background:rgba(255,255,255,.25);transform:rotate(90deg)}
+.modal-title{font-size:1.4rem;font-weight:800;margin-bottom:4px}
+.modal-sub{font-size:.85rem;opacity:.65;margin-bottom:16px}
+.favorites-modal{max-width:600px;margin:0 auto}
+.favorites-list{display:flex;flex-direction:column;gap:10px}
+.favorite-item{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all .2s}
+.favorite-item:hover{background:rgba(255,255,255,.15);transform:translateX(4px)}
+.favorite-info{flex:1}
+.favorite-name{font-weight:600;margin-bottom:2px}
+.favorite-region{font-size:.8rem;opacity:.65}
+.favorite-remove{background:none;border:none;color:#ff6b6b;font-size:1.2rem;cursor:pointer;padding:8px;transition:all .2s;opacity:.7}
+.favorite-remove:hover{opacity:1;transform:scale(1.15)}
+#mapContainer{width:100%;height:240px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);margin-top:12px}
+@media (max-width:600px) {
+  body{padding:18px 12px 60px}
+  h1{font-size:1.3rem;gap:6px}
+  .subtitle{font-size:.75rem;margin-bottom:18px}
+  .tabs{margin-bottom:14px;gap:4px}
+  .tab-btn{font-size:.7rem;padding:8px 10px}
+  .card{padding:16px;margin-bottom:12px}
+  .search-input{font-size:.95rem}
+  .current-icon{font-size:2.8rem}
+  .current-temp{font-size:3.5rem}
+  .section-title{font-size:.7rem;margin-bottom:10px}
+  .widgets-grid{grid-template-columns:1fr}
+  #mapContainer{height:180px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AlpenJay</h1>
+  <p class="subtitle">Schweizer Wetter · Powered by Callum</p>
+
+  <div id="warningBanner"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('weather',this)">☀️ Wetter</button>
+    <button class="tab-btn" onclick="switchTab('alerts',this)">⚠️ Warnungen</button>
+    <button class="tab-btn" onclick="switchTab('calendar',this)">📅 Kalender</button>
+    <button class="tab-btn" onclick="switchTab('details',this)">📋 Details</button>
+  </div>
+
+  <div id="tab-weather" class="tab-panel active">
+    <div class="search-box">
+      <input class="search-input" id="searchInput" type="text" placeholder="🔍 Ort suchen..." autocomplete="off" oninput="onSearch(this.value)">
+      <button class="favorites-btn" onclick="openFavoritesModal()" title="Favoriten">⭐</button>
+      <div class="suggestions" id="suggestions" style="display:none"></div>
+    </div>
+    <div id="weatherContent"><div class="loading">🏔️ Wetter wird geladen...</div></div>
+  </div>
+
+  <div id="tab-alerts" class="tab-panel">
+    <div id="alertsContent"><div class="loading">⚠️ Warnungen werden geladen...</div></div>
+  </div>
+
+  <div id="tab-calendar" class="tab-panel">
+    <div id="calendarContent"><div class="loading">📅 Kalender wird geladen...</div></div>
+  </div>
+
+  <div id="tab-details" class="tab-panel">
+    <div id="detailsContent"><div class="loading">📋 Zuerst Wetter laden...</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-sheet" id="modalSheet">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="favoritesModal" onclick="closeFavoritesModalOutside(event)">
+  <div class="modal-sheet favorites-modal" id="favoritesSheet">
+    <div class="modal-handle"></div>
+    <button class="close-btn" onclick="closeFavoritesModal()">✕</button>
+    <div class="modal-title">⭐ Favoriten</div>
+    <div class="modal-sub">Deine gespeicherten Orte</div>
+    <div id="favoritesList" class="favorites-list"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+let currentPlace = null, weatherData = null, map = null, marker = null;
+let compassHeading = 0;
+const FAVORITES_KEY = 'alpenjay_favorites';
+
+// Compass
+function initCompass() {
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', e => {
+      let heading = e.alpha; // 0 to 360
+      if (e.webkitCompassHeading !== undefined) heading = e.webkitCompassHeading;
+      compassHeading = Math.round(heading);
+      updateCompassUI();
+    });
+  } else {
+    console.log('Compass not supported');
+  }
+}
+
+function updateCompassUI() {
+  const arrow = document.querySelector('.compass-arrow');
+  const deg = document.querySelector('.compass-degrees');
+  if (arrow) arrow.style.transform = `rotate(${compassHeading}deg)`;
+  if (deg) deg.textContent = `${compassHeading}°`;
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'details' && weatherData) renderDetailsTab();
+  if (tab === 'alerts' && weatherData) renderAlertsTab();
+  if (tab === 'calendar' && weatherData) renderCalendarTab();
+  if (tab === 'weather' && map) setTimeout(() => map.invalidateSize(), 60);
+}
+
+function getFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites(favorites) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+}
+
+function isFavorite(place) {
+  return getFavorites().some(f => f.lat === place.lat && f.lon === place.lon);
+}
+
+function toggleFavorite(place) {
+  let favorites = getFavorites();
+  const idx = favorites.findIndex(f => f.lat === place.lat && f.lon === place.lon);
+  if (idx >= 0) {
+    favorites.splice(idx, 1);
+  } else {
+    favorites.push({name: place.name, region: place.region, lat: place.lat, lon: place.lon});
+  }
+  saveFavorites(favorites);
+}
+
+function updateStarButton() {
+  const btn = document.querySelector('.star-btn.active');
+  if (btn) btn.classList.remove('active');
+  const isFav = isFavorite(currentPlace);
+  const allBtns = document.querySelectorAll('.star-btn');
+  allBtns.forEach(b => {
+    if (isFav) b.textContent = '⭐';
+    else b.textContent = '☆';
+    if (b === allBtns[allBtns.length - 1]) b.classList.toggle('active', isFav);
+  });
+}
+
+function openFavoritesModal() {
+  const favorites = getFavorites();
+  const html = favorites.length === 0 
+    ? '<div style="text-align:center;padding:40px 20px;opacity:.6">Noch keine Favoriten</div>'
+    : favorites.map((fav) => `
+        <div class="favorite-item" onclick="selectPlace({name:'${fav.name.replace(/'/g, "\\'")}',region:'${fav.region.replace(/'/g, "\\'")}',lat:${fav.lat},lon:${fav.lon}});closeFavoritesModal()">
+          <div class="favorite-info">
+            <div class="favorite-name">${fav.name}</div>
+            <div class="favorite-region">${fav.region}</div>
+          </div>
+          <button class="favorite-remove" onclick="event.stopPropagation();removeFavorite('${fav.name}',${fav.lat},${fav.lon})">✕</button>
+        </div>
+      `).join('');
+  
+  document.getElementById('favoritesList').innerHTML = html;
+  document.getElementById('favoritesModal').classList.add('active');
+}
+
+function removeFavorite(name, lat, lon) {
+  let favorites = getFavorites();
+  favorites = favorites.filter(f => !(f.name === name && f.lat === lat && f.lon === lon));
+  saveFavorites(favorites);
+  openFavoritesModal();
+}
+
+function closeFavoritesModal() {
+  document.getElementById('favoritesModal').classList.remove('active');
+}
+
+function closeFavoritesModalOutside(event) {
+  if (event.target === document.getElementById('favoritesModal')) closeFavoritesModal();
+}
+
+let searchTimer = null;
+function onSearch(v) {
+  clearTimeout(searchTimer);
+  const box = document.getElementById('suggestions');
+  if (v.length < 2) { box.style.display = 'none'; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(v)}&count=6&language=de&countryCode=CH`);
+      const d = await r.json();
+      if (!d.results || !d.results.length) { box.style.display = 'none'; return; }
+      box.innerHTML = d.results.map(p => {
+        const isFav = isFavorite({name: p.name, region: p.admin1 || '', lat: p.latitude, lon: p.longitude});
+        return `<div class="suggestion-item" onclick="selectPlace({name:'${p.name.replace(/'/g, "\\'")}',region:'${(p.admin1||'').replace(/'/g, "\\'")}',lat:${p.latitude},lon:${p.longitude}})">
+          <span>${p.name}<span style="opacity:.5;font-size:.8rem;margin-left:8px">${p.admin1||''}</span></span>
+          <button class="star-btn ${isFav ? 'active' : ''}" onclick="event.stopPropagation();toggleFavoriteSuggestion({name:'${p.name.replace(/'/g, "\\'")}',region:'${(p.admin1||'').replace(/'/g, "\\'")}',lat:${p.latitude},lon:${p.longitude}})" style="margin-left:auto">${isFav ? '⭐' : '☆'}</button>
+        </div>`;
+      }).join('');
+      box.style.display = 'block';
+    } catch(e) { box.style.display = 'none'; }
+  }, 300);
+}
+
+function toggleFavoriteSuggestion(place) {
+  toggleFavorite(place);
+  onSearch(document.getElementById('searchInput').value);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-box')) document.getElementById('suggestions').style.display = 'none';
+});
+
+async function selectPlace(place) {
+  currentPlace = place;
+  document.getElementById('suggestions').style.display = 'none';
+  document.getElementById('searchInput').value = place.name;
+  document.getElementById('weatherContent').innerHTML = '<div class="loading">⏳ Wetterdaten werden geladen...</div>';
+  try {
+    await fetchWeather(place.lat, place.lon);
+    renderWeatherTab();
+    updateStarButton();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('weatherContent').innerHTML = `<div class="loading">❌ Fehler: ${e.message}</div>`;
+  }
+}
+
+async function fetchWeather(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,is_day&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,wind_speed_10m,uv_index,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant&timezone=Europe%2FZurich&forecast_days=7&models=best_match`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  weatherData = await res.json();
+}
+
+function wxIcon(code, isDay = true) {
+  if (code === 0) return isDay ? '☀️' : '🌙';
+  if (code <= 2) return isDay ? '🌤️' : '🌤️';
+  if (code === 3) return '☁️';
+  if (code <= 49) return '🌫️';
+  if (code <= 55) return '🌦️';
+  if (code <= 65) return '🌧️';
+  if (code <= 67) return '🌨️';
+  if (code <= 77) return '❄️';
+  if (code <= 82) return '🌧️';
+  if (code <= 86) return '🌨️';
+  if (code <= 99) return '⛈️';
+  return '🌡️';
+}
+
+function wxDesc(code) {
+  if (code === 0) return 'Klar';
+  if (code <= 2) return 'Leicht bewölkt';
+  if (code === 3) return 'Bedeckt';
+  if (code <= 49) return 'Neblig';
+  if (code <= 55) return 'Nieselregen';
+  if (code <= 65) return 'Regen';
+  if (code <= 67) return 'Eisregen';
+  if (code <= 77) return 'Schnee';
+  if (code <= 82) return 'Regenschauer';
+  if (code <= 86) return 'Schneeschauer';
+  if (code <= 99) return 'Gewitter';
+  return 'Unbekannt';
+}
+
+function renderWeatherTab() {
+  if (!weatherData) return;
+  const c = weatherData.current;
+  const d = weatherData.daily;
+  const h = weatherData.hourly;
+  const now = new Date();
+  const nowH = now.getHours();
+  const curHIdx = h.time.findIndex(t => {
+    const th = new Date(t);
+    return th.getDate() === now.getDate() && th.getHours() === nowH;
+  });
+
+  let hourlyHTML = '';
+  for (let i = Math.max(0, curHIdx - 2); i < Math.min(h.time.length, curHIdx + 20); i++) {
+    const t = new Date(h.time[i]);
+    const isNow = i === curHIdx;
+    const hTemp = Math.round(h.temperature_2m[i]);
+    const hCode = h.weather_code[i];
+    const hIcon = wxIcon(hCode, t.getHours() >= 6 && t.getHours() < 18);
+    hourlyHTML += `<div class="hour-card ${isNow ? 'now' : ''}" onclick="openHourModal(${i})">
+      <div class="hour-time">${t.getHours().toString().padStart(2, '0')}:${t.getMinutes().toString().padStart(2, '0')}</div>
+      <div class="hour-icon">${hIcon}</div>
+      <div class="hour-temp">${hTemp}°</div>
+    </div>`;
+  }
+
+  let daysHTML = '';
+  for (let i = 0; i < Math.min(7, d.time.length); i++) {
+    const dDate = new Date(d.time[i]);
+    const dayName = dDate.toDateString() === now.toDateString() ? 'Heute' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][dDate.getDay()];
+    const dCode = d.weather_code[i];
+    const dHi = Math.round(d.temperature_2m_max[i]);
+    const dLo = Math.round(d.temperature_2m_min[i]);
+    const dIcon = wxIcon(dCode, true);
+    const dDesc = wxDesc(dCode);
+    daysHTML += `<div class="day-card" onclick="openDayModal(${i})">
+      <div class="day-info">
+        <div class="day-name">${dayName}</div>
+        <div class="day-desc">${dDesc}</div>
+      </div>
+      <div style="font-size:1.5rem">${dIcon}</div>
+      <div class="day-temps">
+        <div class="day-lo">${dLo}°</div>
+        <div class="day-hi">${dHi}°</div>
+      </div>
+    </div>`;
+  }
+
+  const starBtn = isFavorite(currentPlace) ? '⭐' : '☆';
+  const html = `
+    <div class="card">
+      <div class="current-main">
+        <div class="current-header">
+          <div style="text-align:center">
+            <div class="current-loc">${currentPlace.name}</div>
+            <div class="current-region">${currentPlace.region}</div>
+          </div>
+          <button class="star-btn ${isFavorite(currentPlace) ? 'active' : ''}" onclick="toggleFavorite(currentPlace);updateStarButton()" title="Zu Favoriten hinzufügen">${starBtn}</button>
+        </div>
+        <div class="current-temp-wrap" onclick="openCurrentModal()">
+          <div class="current-icon">${wxIcon(c.weather_code, c.is_day)}</div>
+          <div class="current-temp">${Math.round(c.temperature_2m)}°</div>
+        </div>
+        <div class="current-desc">${wxDesc(c.weather_code)}</div>
+        <div class="current-hilo">↑ ${Math.round(d.temperature_2m_max[0])}° · ↓ ${Math.round(d.temperature_2m_min[0])}° · Gefühlt ${Math.round(c.apparent_temperature)}°</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Stündliche Vorhersage</div>
+      <div class="hourly-scroll" id="hourlyStrip">${hourlyHTML}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">7-Tage Prognose</div>
+      ${daysHTML}
+    </div>
+    <div id="mapContainer"></div>
+  `;
+  document.getElementById('weatherContent').innerHTML = html;
+  setTimeout(() => {
+    const strip = document.getElementById('hourlyStrip');
+    const nowCard = strip?.querySelector('.now');
+    if (nowCard) nowCard.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'});
+  }, 100);
+  setTimeout(() => initMap(), 100);
+}
+
+function initMap() {
+  if (!currentPlace) return;
+  const el = document.getElementById('mapContainer');
+  if (!el) return;
+  if (map) { map.remove(); map = null; }
+  map = L.map(el).setView([currentPlace.lat, currentPlace.lon], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
+  marker = L.marker([currentPlace.lat, currentPlace.lon]).addTo(map).bindPopup(currentPlace.name).openPopup();
+  map.on('click', async e => {
+    const { lat, lng } = e.latlng;
+    try {
+      const nr = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}&format=json&accept-language=de`);
+      const nd = await nr.json();
+      const name = nd.address?.city || nd.address?.town || nd.address?.village || 'Dieser Ort';
+      selectPlace({ name, region: '', lat: +lat.toFixed(4), lon: +lng.toFixed(4) });
+    } catch(e) {
+      selectPlace({ name: 'Dieser Ort', region: '', lat: +lat.toFixed(4), lon: +lng.toFixed(4) });
+    }
+  });
+}
+
+function openCurrentModal() {
+  if (!weatherData) return;
+  const c = weatherData.current;
+  const d = weatherData.daily;
+  const h = weatherData.hourly;
+  
+  const now = new Date();
+  const sunrise = new Date(d.sunrise[0]);
+  const sunset = new Date(d.sunset[0]);
+  
+  const windDir = c.wind_direction_10m;
+  const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const dirIdx = Math.round(windDir / 22.5) % 16;
+  const dirLabel = dirs[dirIdx];
+  
+  const humidity = Math.round(c.relative_humidity_2m);
+  const pressure = Math.round(c.surface_pressure);
+  const windSpd = Math.round(c.wind_speed_10m);
+  const visibility = h.visibility[0] / 1000;
+  
+  const curH = now.getHours();
+  const curHIdx = h.time.findIndex(t => {
+    const th = new Date(t);
+    return th.getDate() === now.getDate() && th.getHours() === curH;
+  });
+  const uv = curHIdx >= 0 ? h.uv_index[curHIdx] : 0;
+  const uvLabel = uv < 3 ? 'Niedrig' : uv < 6 ? 'Mässig' : uv < 8 ? 'Hoch' : uv < 11 ? 'Sehr hoch' : 'Extrem';
+  const uvPct = Math.min(100, (uv / 11) * 100);
+
+  const html = `
+    <div class="modal-title">📍 ${currentPlace.name}</div>
+    <div class="modal-sub" style="margin-bottom:20px">Aktuelle Bedingungen</div>
+    
+    <div class="card" style="text-align:center">
+      <div style="font-size:3rem;margin-bottom:8px">${wxIcon(c.weather_code, c.is_day)}</div>
+      <div style="font-size:2.2rem;font-weight:800;margin-bottom:4px">${Math.round(c.temperature_2m)}°</div>
+      <div style="font-size:1rem;opacity:.85">${wxDesc(c.weather_code)}</div>
+      <div style="font-size:.9rem;opacity:.7;margin-top:8px">Gefühlt ${Math.round(c.apparent_temperature)}°</div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget">
+        <div class="widget-label">💨 Wind</div>
+        <div class="widget-value">${windSpd}</div>
+        <div class="widget-sub">km/h ${dirLabel}</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">💧 Feuchte</div>
+        <div class="widget-value">${humidity}</div>
+        <div class="widget-sub">%</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">🔵 Druck</div>
+        <div class="widget-value">${pressure}</div>
+        <div class="widget-sub">hPa</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">👁️ Sicht</div>
+        <div class="widget-value">${visibility.toFixed(1)}</div>
+        <div class="widget-sub">km</div>
+      </div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget">
+        <div class="widget-label">☀️ UV-Index</div>
+        <div class="widget-value">${uv?.toFixed(1) ?? '–'}</div>
+        <div class="widget-sub">${uvLabel}</div>
+        <div class="uv-bar"><div class="uv-marker" style="left:${uvPct}%"></div></div>
+      </div>
+      <div class="compass-widget">
+        <div class="widget-label">🧭 Kompass</div>
+        <div class="compass-rose">
+          <div class="compass-n">N</div>
+          <div class="compass-arrow"></div>
+        </div>
+        <div class="compass-degrees">–°</div>
+      </div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget">
+        <div class="widget-label">🌅 Sonnenaufgang</div>
+        <div class="widget-value">${sunrise.getHours().toString().padStart(2, '0')}:${sunrise.getMinutes().toString().padStart(2, '0')}</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">🌇 Sonnenuntergang</div>
+        <div class="widget-value">${sunset.getHours().toString().padStart(2, '0')}:${sunset.getMinutes().toString().padStart(2, '0')}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+  updateCompassUI();
+}
+
+function openDayModal(dayIdx) {
+  if (!weatherData) return;
+  const d = weatherData.daily;
+  const dDate = new Date(d.time[dayIdx]);
+  const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  const dayTitle = dDate.toDateString() === new Date().toDateString() ? 'Heute' : dayNames[dDate.getDay()];
+
+  const code = d.weather_code[dayIdx];
+  const temp = d.temperature_2m_max[dayIdx];
+  const lo = d.temperature_2m_min[dayIdx];
+  const rain = d.precipitation_probability_max[dayIdx] ?? 0;
+  const wind = d.wind_speed_10m_max[dayIdx];
+  const uv = d.uv_index_max[dayIdx];
+  const sunrise = new Date(d.sunrise[dayIdx]);
+  const sunset = new Date(d.sunset[dayIdx]);
+  const precip = d.precipitation_sum[dayIdx];
+
+  const html = `
+    <div class="modal-title">${dayTitle}, ${dDate.toLocaleDateString('de-CH')}</div>
+    <div class="modal-sub" style="margin-bottom:20px">${wxDesc(code)}</div>
+    
+    <div class="card" style="text-align:center">
+      <div style="font-size:3rem;margin-bottom:8px">${wxIcon(code, true)}</div>
+      <div style="font-size:2.2rem;font-weight:800">${Math.round(temp)}°</div>
+      <div style="font-size:.9rem;opacity:.7">↓ ${Math.round(lo)}°</div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget">
+        <div class="widget-label">💧 Regen%</div>
+        <div class="widget-value">${Math.round(rain)}</div>
+        <div class="widget-sub">Wahrscheinlichkeit</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">💧 Menge</div>
+        <div class="widget-value">${precip?.toFixed(1) ?? '–'}</div>
+        <div class="widget-sub">mm</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">💨 Wind</div>
+        <div class="widget-value">${Math.round(wind)}</div>
+        <div class="widget-sub">km/h</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">☀️ UV-Index</div>
+        <div class="widget-value">${uv?.toFixed(1) ?? '–'}</div>
+        <div class="widget-sub">Max</div>
+      </div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget">
+        <div class="widget-label">🌅 Aufgang</div>
+        <div class="widget-value">${sunrise.getHours().toString().padStart(2, '0')}:${sunrise.getMinutes().toString().padStart(2, '0')}</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">🌇 Untergang</div>
+        <div class="widget-value">${sunset.getHours().toString().padStart(2, '0')}:${sunset.getMinutes().toString().padStart(2, '0')}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function openHourModal(hourIdx) {
+  if (!weatherData) return;
+  const h = weatherData.hourly;
+  const t = new Date(h.time[hourIdx]);
+  
+  const temp = h.temperature_2m[hourIdx];
+  const feelsLike = h.apparent_temperature[hourIdx];
+  const code = h.weather_code[hourIdx];
+  const wind = h.wind_speed_10m[hourIdx];
+  const rainProb = h.precipitation_probability[hourIdx] ?? 0;
+  const precip = h.precipitation[hourIdx] ?? 0;
+  const uv = h.uv_index[hourIdx];
+  const visibility = h.visibility[hourIdx] / 1000;
+  
+  const html = `
+    <div class="modal-title">${t.getHours().toString().padStart(2, '0')}:${t.getMinutes().toString().padStart(2, '0')} Uhr</div>
+    <div class="modal-sub" style="margin-bottom:20px">${t.toLocaleDateString('de-CH', {weekday:'long', month:'long', day:'numeric'})}</div>
+    
+    <div class="card" style="text-align:center">
+      <div style="font-size:3rem;margin-bottom:8px">${wxIcon(code, t.getHours() >= 6 && t.getHours() < 18)}</div>
+      <div style="font-size:2.2rem;font-weight:800;margin-bottom:4px">${Math.round(temp)}°</div>
+      <div style="font-size:.9rem;opacity:.7">${wxDesc(code)}</div>
+      <div style="font-size:.85rem;opacity:.65;margin-top:8px">Gefühlt ${Math.round(feelsLike)}°</div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget">
+        <div class="widget-label">💨 Wind</div>
+        <div class="widget-value">${Math.round(wind)}</div>
+        <div class="widget-sub">km/h</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">💧 Regen%</div>
+        <div class="widget-value">${Math.round(rainProb)}</div>
+        <div class="widget-sub">Wahrscheinlichkeit</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">💧 Regen</div>
+        <div class="widget-value">${precip.toFixed(1)}</div>
+        <div class="widget-sub">mm</div>
+      </div>
+      <div class="widget">
+        <div class="widget-label">👁️ Sicht</div>
+        <div class="widget-value">${visibility.toFixed(1)}</div>
+        <div class="widget-sub">km</div>
+      </div>
+    </div>
+
+    <div class="widgets-grid">
+      <div class="widget" style="grid-column:1/-1">
+        <div class="widget-label">☀️ UV-Index</div>
+        <div class="widget-value">${uv?.toFixed(1) ?? '–'}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function renderAlertsTab() {
+  if (!weatherData) {
+    document.getElementById('alertsContent').innerHTML = '<div class="loading">❌ Wetter muss zuerst geladen werden</div>';
+    return;
+  }
+
+  let html = '<div class="card"><div class="section-title">🚨 Aktive Warnungen</div>';
+  html += '<div style="text-align:center;padding:30px;opacity:.6">✅ Keine Warnungen</div>';
+  html += '</div>';
+
+  if (weatherData.daily) {
+    const d = weatherData.daily;
+    const now = new Date();
+    
+    html += '<div class="card"><div class="section-title">⚠️ Wetterwarnungen (nächste 7 Tage)</div>';
+    
+    let hasWarnings = false;
+    for (let i = 0; i < Math.min(7, d.time.length); i++) {
+      const dDate = new Date(d.time[i]);
+      const code = d.weather_code[i];
+      const wind = d.wind_speed_10m_max[i];
+      const precip = d.precipitation_sum[i];
+      
+      let warnings = [];
+      
+      if (code >= 80) warnings.push('🌧️ Starkregen/Gewitter');
+      if (code >= 65) warnings.push('🌨️ Schneefall');
+      if (wind > 50) warnings.push('💨 Sturmwarnung');
+      if (precip > 30) warnings.push('💧 Hoher Niederschlag');
+      
+      if (warnings.length > 0) {
+        hasWarnings = true;
+        const dayName = dDate.toDateString() === now.toDateString() ? 'Heute' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][dDate.getDay()];
+        html += `<div style="background:rgba(255,193,7,.15);border:1px solid rgba(255,193,7,.4);border-radius:12px;padding:10px;margin-bottom:8px">
+          <div style="font-weight:600;margin-bottom:4px">${dayName} - ${dDate.toLocaleDateString('de-CH', { day: 'numeric', month: 'short' })}</div>
+          <div style="font-size:.85rem">${warnings.join(' • ')}</div>
+        </div>`;
+      }
+    }
+    
+    if (!hasWarnings) {
+      html += '<div style="text-align:center;padding:30px;opacity:.6">✅ Keine Wetterwarnungen</div>';
+    }
+    
+    html += '</div>';
+  }
+
+  document.getElementById('alertsContent').innerHTML = html;
+}
+
+function renderCalendarTab() {
+  if (!weatherData) {
+    document.getElementById('calendarContent').innerHTML = '<div class="loading">❌ Wetter muss zuerst geladen werden</div>';
+    return;
+  }
+
+  const d = weatherData.daily;
+  let html = '';
+
+  html += '<div class="card"><div class="section-title">🌟 Beste Wandertage</div>';
+  const bestDays = [];
+  for (let i = 0; i < Math.min(7, d.time.length); i++) {
+    const score = 100 - (d.precipitation_probability_max[i] || 0) - Math.abs(d.temperature_2m_max[i] - 15) + (d.weather_code[i] === 0 ? 20 : 0);
+    bestDays.push({ idx: i, score });
+  }
+  bestDays.sort((a, b) => b.score - a.score);
+  
+  html += bestDays.slice(0, 3).map((b, i) => {
+    const dDate = new Date(d.time[b.idx]);
+    const dayName = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][dDate.getDay()];
+    return `<div style="display:flex;justify-content:space-between;padding:10px;background:rgba(76,175,80,.15);border-radius:10px;margin-bottom:8px">
+      <div>
+        <div style="font-weight:600">${i+1}. ${dayName}, ${dDate.toLocaleDateString('de-CH', { day: 'numeric', month: 'short' })}</div>
+        <div style="font-size:.8rem;opacity:.7">${wxDesc(d.weather_code[b.idx])}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:1.5rem;font-weight:700">${Math.round(d.temperature_2m_max[b.idx])}°</div>
+        <div style="font-size:.75rem;opacity:.7">${d.precipitation_probability_max[b.idx] || 0}% Regen</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  html += '</div>';
+
+  document.getElementById('calendarContent').innerHTML = html;
+}
+
+function renderDetailsTab() {
+  if (!weatherData) {
+    document.getElementById('detailsContent').innerHTML = '<div class="loading">❌ Wetter muss zuerst geladen werden</div>';
+    return;
+  }
+
+  const c = weatherData.current;
+  const d = weatherData.daily;
+  const h = weatherData.hourly;
+  
+  const now = new Date();
+  const sunrise = new Date(d.sunrise[0]);
+  const sunset = new Date(d.sunset[0]);
+  
+  const windDir = c.wind_direction_10m;
+  const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const dirIdx = Math.round(windDir / 22.5) % 16;
+  const dirLabel = dirs[dirIdx];
+  
+  const humidity = Math.round(c.relative_humidity_2m);
+  const pressure = Math.round(c.surface_pressure);
+  const windSpd = Math.round(c.wind_speed_10m);
+  
+  const curH = now.getHours();
+  const curHIdx = h.time.findIndex(t => {
+    const th = new Date(t);
+    return th.getDate() === now.getDate() && th.getHours() === curH;
+  });
+  const uv = curHIdx >= 0 ? h.uv_index[curHIdx] : 0;
+  const uvLabel = uv < 3 ? 'Niedrig' : uv < 6 ? 'Mässig' : uv < 8 ? 'Hoch' : uv < 11 ? 'Sehr hoch' : 'Extrem';
+  const uvPct = Math.min(100, (uv / 11) * 100);
+
+  const html = `
+    <div class="card">
+      <div class="section-title">Detaillierte Wetterdaten</div>
+      <div class="widgets-grid">
+        <div class="widget">
+          <div class="widget-label">☀️ UV-Index</div>
+          <div class="widget-value">${uv?.toFixed(1) ?? '–'}</div>
+          <div class="widget-sub">${uvLabel}</div>
+          <div class="uv-bar"><div class="uv-marker" style="left:${uvPct}%"></div></div>
+        </div>
+        <div class="widget">
+          <div class="widget-label">💨 Wind</div>
+          <div class="widget-value">${windSpd}</div>
+          <div class="widget-sub">km/h ${dirLabel}</div>
+        </div>
+        <div class="widget">
+          <div class="widget-label">💧 Feuchte</div>
+          <div class="widget-value">${humidity}</div>
+          <div class="widget-sub">%</div>
+        </div>
+        <div class="widget">
+          <div class="widget-label">🔵 Druck</div>
+          <div class="widget-value">${pressure}</div>
+          <div class="widget-sub">hPa</div>
+        </div>
+        <div class="widget">
+          <div class="widget-label">🌅 Aufgang</div>
+          <div class="widget-value">${sunrise.getHours().toString().padStart(2, '0')}:${sunrise.getMinutes().toString().padStart(2, '0')}</div>
+          <div class="widget-sub">Sonnenauf</div>
+        </div>
+        <div class="widget">
+          <div class="widget-label">🌇 Untergang</div>
+          <div class="widget-value">${sunset.getHours().toString().padStart(2, '0')}:${sunset.getMinutes().toString().padStart(2, '0')}</div>
+          <div class="widget-sub">Sonnenunt</div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('detailsContent').innerHTML = html;
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function closeModalOutside(event) {
+  if (event.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+(async function init() {
+  initCompass();
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const lat = +pos.coords.latitude.toFixed(4);
+        const lon = +pos.coords.longitude.toFixed(4);
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=de`);
+          const data = await r.json();
+          const name = data.address?.city || data.address?.town || data.address?.village || 'Mein Standort';
+          const region = data.address?.state || '';
+          selectPlace({ name, region, lat, lon });
+        } catch(e) {
+          selectPlace({ name: 'Mein Standort', region: '', lat, lon });
+        }
+      },
+      () => selectPlace({ name: 'Zürich', region: 'Zürich', lat: 47.3769, lon: 8.5417 }),
+      { timeout: 6000 }
+    );
+  } else {
+    selectPlace({ name: 'Zürich', region: 'Zürich', lat: 47.3769, lon: 8.5417 });
+  }
+})();
+</script>
+</body>
+</html>
